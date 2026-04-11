@@ -14,7 +14,8 @@ terraform {
     organization = "Mikes_sandbox"
 
     workspaces {
-      name = "tf-demo-hashi-githubactions"
+      name    = "tf-demo-hashi-githubactions"
+      project = "Mike-Demos"
     }
   }
 }
