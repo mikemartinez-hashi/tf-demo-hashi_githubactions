@@ -7,7 +7,7 @@ variable "region" {
 variable "instance_type" {
   description = "EC2 instance type"
   type        = string
-  # default     = "t3.micro"
+  default     = "t3.micro"
 
   # validation {
   #   condition     = contains(["t3.micro", "t3.small", "t3.medium"], var.instance_type)
@@ -36,7 +36,7 @@ variable "demo" {
 variable "environment" {
   description = "Deployment environment (dev, staging, prod)"
   type        = string
-  # default     = "dev"
+  default     = "dev"
 
   # validation {
   #   condition     = contains(["dev", "staging", "prod"], var.environment)
@@ -47,7 +47,7 @@ variable "environment" {
 variable "owner" {
   description = "Owner tag for resource tracking"
   type        = string
-  # default     = "SE Team"
+  default     = "SE Team"
 }
 
 # -----------------------------------------------
