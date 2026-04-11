@@ -103,7 +103,7 @@ jobs:
 
             const runLink = runUrl
               ? `\n\n> 🔗 **[View full run in HCP Terraform](${runUrl})**`
-              : `\n\n> 💡 Open [HCP Terraform](https://app.terraform.io) to view the full speculative plan and any Sentinel policy results.`;
+              : `\n\n> 💡 Open [HCP Terraform](https://app.terraform.io) to view the full speculative plan.`;
 
             const output = [
               `#### Terraform Init: \`${{ steps.init.outcome }}\``,

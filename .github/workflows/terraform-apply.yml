@@ -1,7 +1,7 @@
 name: "Terraform Apply (Main)"
 
 # Triggers a full plan + apply when a PR merges to main.
-# HCP Terraform handles the actual execution, including Sentinel policy checks.
+# HCP Terraform handles the actual execution.
 
 on:
   push:
@@ -52,7 +52,6 @@ jobs:
       # 5. Apply
       #    In HCP Terraform remote mode, `terraform apply` triggers a
       #    full plan + apply run in a single HCP Terraform run.
-      #    Sentinel policies are enforced before the apply phase.
       #    DO NOT add a separate `terraform plan` step before this —
       #    it would kick off a second, redundant run in HCP Terraform.
       #
