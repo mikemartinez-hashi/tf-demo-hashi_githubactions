@@ -34,7 +34,7 @@ resource "aws_instance" "web_server" {
 
   key_name = var.key_name
   security_groups = [
-    aws_security_group.allow_ssh_and_http.name
+    aws_security_group.allow_http.name
   ]
 
   tags = {
@@ -46,12 +46,12 @@ resource "aws_instance" "web_server" {
   }
 
   user_data = templatefile("${path.module}/user_data.sh", {
-    environment    = var.environment
-    region         = var.region
-    instance_type  = var.instance_type
-    github_run_id  = var.github_run_id
-    github_sha     = var.github_sha
-    github_actor   = var.github_actor
+    environment   = var.environment
+    region        = var.region
+    instance_type = var.instance_type
+    github_run_id = var.github_run_id
+    github_sha    = var.github_sha
+    github_actor  = var.github_actor
   })
 }
 
