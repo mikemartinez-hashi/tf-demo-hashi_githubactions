@@ -1,0 +1,65 @@
+name: "Terraform Apply (Main)"
+
+# Triggers a full plan + apply when a PR merges to main.
+# HCP Terraform handles the actual execution, including Sentinel policy checks.
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "**.tf"
+      - "**.tfvars"
+      - "user_data.sh"
+
+permissions:
+  contents: read
+
+jobs:
+  terraform-apply:
+    name: "Plan and Apply"
+    runs-on: ubuntu-latest
+
+    steps:
+      # -----------------------------------------------
+      # 1. Checkout
+      # -----------------------------------------------
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # -----------------------------------------------
+      # 2. Setup Terraform pointed at HCP Terraform
+      # -----------------------------------------------
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~1.9"
+          cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+
+      # -----------------------------------------------
+      # 3. Init
+      # -----------------------------------------------
+      - name: Terraform Init
+        run: terraform init
+
+      # -----------------------------------------------
+      # 4. Validate
+      # -----------------------------------------------
+      - name: Terraform Validate
+        run: terraform validate -no-color
+
+      # -----------------------------------------------
+      # 5. Plan
+      #    In API-driven mode, this sends config to HCP Terraform.
+      #    Sentinel policies run here before apply is allowed.
+      # -----------------------------------------------
+      - name: Terraform Plan
+        run: terraform plan -no-color -input=false
+
+      # -----------------------------------------------
+      # 6. Apply
+      #    Only runs after plan passes, including Sentinel checks.
+      #    HCP Terraform executes and stores state.
+      # -----------------------------------------------
+      - name: Terraform Apply
+        run: terraform apply -auto-approve -input=false
