@@ -11,10 +11,10 @@ terraform {
   # HCP Terraform remote backend
   # Replace YOUR_ORG_NAME with your HCP Terraform org
   cloud {
-    organization = "YOUR_ORG_NAME"
+    organization = "Mikes_sandbox"
 
     workspaces {
-      name = "tf-demo-hashi"
+      name = "tf-demo-hashi-githubactions"
     }
   }
 }
@@ -26,40 +26,32 @@ provider "aws" {
 # -----------------------------------------------
 # EC2 Web Server
 # -----------------------------------------------
+# Create an EC2 Instance
 resource "aws_instance" "web_server" {
-  ami           = data.aws_ami.amazon_linux.id
+  ami           = data.aws_ami.hc-base-ubuntu-2404["amd64"].id
   instance_type = var.instance_type
-  key_name      = var.key_name
 
-  vpc_security_group_ids = [aws_security_group.allow_http.id]
-
-  user_data = templatefile("${path.module}/user_data.sh", {
-    environment   = var.environment
-    region        = var.region
-    instance_type = var.instance_type
-  })
-
-  root_block_device {
-    encrypted   = true
-    volume_size = 20
-    volume_type = "gp3"
-  }
-
-  metadata_options {
-    http_tokens = "required"
-  }
+  key_name = var.key_name
+  security_groups = [
+    aws_security_group.allow_ssh_and_http.name
+  ]
 
   tags = {
     Name        = "${var.server}-${var.environment}"
     Type        = var.demo
     Environment = var.environment
     Owner       = var.owner
-    ManagedBy   = "terraform"
+
   }
 
-  lifecycle {
-    create_before_destroy = true
-  }
+  user_data = templatefile("${path.module}/user_data.sh", {
+    environment    = var.environment
+    region         = var.region
+    instance_type  = var.instance_type
+    github_run_id  = var.github_run_id
+    github_sha     = var.github_sha
+    github_actor   = var.github_actor
+  })
 }
 
 # -----------------------------------------------

@@ -49,17 +49,20 @@ jobs:
         run: terraform validate -no-color
 
       # -----------------------------------------------
-      # 5. Plan
-      #    In API-driven mode, this sends config to HCP Terraform.
-      #    Sentinel policies run here before apply is allowed.
-      # -----------------------------------------------
-      - name: Terraform Plan
-        run: terraform plan -no-color -input=false
-
-      # -----------------------------------------------
-      # 6. Apply
-      #    Only runs after plan passes, including Sentinel checks.
-      #    HCP Terraform executes and stores state.
+      # 5. Apply
+      #    In HCP Terraform remote mode, `terraform apply` triggers a
+      #    full plan + apply run in a single HCP Terraform run.
+      #    Sentinel policies are enforced before the apply phase.
+      #    DO NOT add a separate `terraform plan` step before this —
+      #    it would kick off a second, redundant run in HCP Terraform.
+      #
+      #    GitHub Actions built-in env vars are passed as -var flags so
+      #    they get baked into user_data.sh at apply time, proving the
+      #    deployment came from this exact workflow run.
       # -----------------------------------------------
       - name: Terraform Apply
-        run: terraform apply -auto-approve -input=false
+        run: |
+          terraform apply -auto-approve -input=false \
+            -var="github_run_id=$GITHUB_RUN_ID" \
+            -var="github_sha=$GITHUB_SHA" \
+            -var="github_actor=$GITHUB_ACTOR"

@@ -36,6 +36,9 @@ jobs:
         with:
           terraform_version: "~1.9"
           cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+          # Required: wraps the terraform binary so stdout/stderr are
+          # captured as step outputs (steps.plan.outputs.stdout, etc.)
+          terraform_wrapper: true
 
       # -----------------------------------------------
       # 3. Initialize (connects to HCP Terraform backend)
@@ -52,37 +55,71 @@ jobs:
         run: terraform validate -no-color
 
       # -----------------------------------------------
-      # 5. Run speculative plan - output goes to HCP Terraform
-      #    The -no-color flag keeps the PR comment clean
+      # 5. Run speculative plan
+      #    In HCP Terraform remote mode, execution happens in the cloud
+      #    and output is streamed back. We tee it to a file so the PR
+      #    comment step can read it reliably (step outputs have a 65K
+      #    character cap and may be trimmed on long plans).
       # -----------------------------------------------
       - name: Terraform Plan
         id: plan
-        run: terraform plan -no-color -input=false
+        run: terraform plan -no-color -input=false 2>&1 | tee /tmp/tfplan.txt; exit ${PIPESTATUS[0]}
         continue-on-error: true
 
       # -----------------------------------------------
       # 6. Post plan summary as a PR comment
+      #    Reads from the tee'd file so we get full output even when
+      #    HCP Terraform streams a long remote plan back. Falls back to
+      #    a helpful message pointing to HCP Terraform if the file is
+      #    empty (e.g. auth failure before plan starts).
       # -----------------------------------------------
       - name: Post Plan to PR
         uses: actions/github-script@v7
-        env:
-          PLAN: "${{ steps.plan.outputs.stdout }}"
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const output = `#### Terraform Init: \`${{ steps.init.outcome }}\`
-            #### Terraform Validate: \`${{ steps.validate.outcome }}\`
-            #### Terraform Plan: \`${{ steps.plan.outcome }}\`
+            const fs = require('fs');
 
-            <details><summary>Show Plan</summary>
+            // Read the tee'd plan output file
+            let planOutput = '';
+            try {
+              planOutput = fs.readFileSync('/tmp/tfplan.txt', 'utf8').trim();
+            } catch (e) {
+              planOutput = '';
+            }
 
-            \`\`\`terraform
-            ${process.env.PLAN}
-            \`\`\`
+            // In HCP Terraform remote mode the output is streamed back but
+            // may be empty if the run never started (bad token, init failure, etc.).
+            // Extract the run URL if present so reviewers can click through.
+            const runUrlMatch = planOutput.match(/https:\/\/app\.terraform\.io\/app\/[^\s]+\/runs\/run-[^\s]+/);
+            const runUrl = runUrlMatch ? runUrlMatch[0] : null;
 
-            </details>
+            // Trim to GitHub's ~65K comment limit, leaving room for the wrapper text
+            const MAX_CHARS = 60000;
+            let planDisplay = planOutput || '_No plan output captured. This can happen when HCP Terraform executes the run remotely and streams only status back to the runner._';
+            if (planOutput.length > MAX_CHARS) {
+              planDisplay = planOutput.slice(0, MAX_CHARS) + `\n\n... [output truncated at ${MAX_CHARS} chars]`;
+            }
 
-            *Triggered by @${{ github.actor }} on \`${{ github.event_name }}\`*`;
+            const runLink = runUrl
+              ? `\n\n> 🔗 **[View full run in HCP Terraform](${runUrl})**`
+              : `\n\n> 💡 Open [HCP Terraform](https://app.terraform.io) to view the full speculative plan and any Sentinel policy results.`;
+
+            const output = [
+              `#### Terraform Init: \`${{ steps.init.outcome }}\``,
+              `#### Terraform Validate: \`${{ steps.validate.outcome }}\``,
+              `#### Terraform Plan: \`${{ steps.plan.outcome }}\``,
+              runLink,
+              ``,
+              `<details><summary>Show Plan Output</summary>`,
+              ``,
+              '```terraform',
+              planDisplay,
+              '```',
+              `</details>`,
+              ``,
+              `*Triggered by @${{ github.actor }} on \`${{ github.event_name }}\`*`,
+            ].join('\n');
 
             github.rest.issues.createComment({
               issue_number: context.issue.number,
