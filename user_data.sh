@@ -21,7 +21,7 @@ sudo cat <<EOF > /var/www/html/index.html
 
 <hr>
 
-<h2>&#x1F680; GitHub Actions Deployment Provenance</h2>
+<h2>GitHub Actions Deployment:</h2>
 <p><strong>GitHub Actions Run ID:</strong> $github_run_id</p>
 <p><strong>Commit SHA:</strong> $github_sha</p>
 <p><strong>Deployed by:</strong> @$github_actor</p>
