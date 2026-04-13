@@ -7,12 +7,7 @@ variable "region" {
 variable "instance_type" {
   description = "EC2 instance type"
   type        = string
-  default     = "t3.micro"
-
-  # validation {
-  #   condition     = contains(["t3.micro", "t3.small", "t3.medium"], var.instance_type)
-  #   error_message = "Instance type must be t3.micro, t3.small, or t3.medium."
-  # }
+  default     = "t3.large"
 }
 
 variable "key_name" {
@@ -24,24 +19,19 @@ variable "key_name" {
 variable "server" {
   description = "Base name for the web server resource"
   type        = string
-  default     = "web-server"
+  default     = "tf-gha-demo-web-server"
 }
 
 variable "demo" {
   description = "Demo tag value for resource identification"
   type        = string
-  default     = "tf-demo"
+  default     = "tf-gha-demo"
 }
 
 variable "environment" {
   description = "Deployment environment (dev, staging, prod)"
   type        = string
-  default     = "dev"
-
-  # validation {
-  #   condition     = contains(["dev", "staging", "prod"], var.environment)
-  #   error_message = "Environment must be one of: dev, staging, prod."
-  # }
+  default     = "Test"
 }
 
 variable "owner" {
